@@ -2,6 +2,7 @@ package Controllers.Kerberos.Server;
 
 import Model.Messenger;
 import Model.Ticket;
+import Model.TimeMethods;
 import Model.UTicket;
 import Security.Model.KeyMethods;
 
@@ -17,6 +18,7 @@ import java.time.Instant;
 public class ProcessRequest {
     public static void processUserRequest(Socket socket, String path4KeyRetrieving, String serviceIPAddress) {
         try {
+
             UTicket userRequest = Messenger.ticketAccepter(socket);
 
             if (userRequest == null) {
@@ -32,25 +34,34 @@ public class ProcessRequest {
 
             Ticket serviceTicket = userRequest.searchTicket("serviceTicket");
 
-            SecretKey sessionKeyClientServer = KeyMethods.convertString2Key(serviceTicket.getKey());
+            Timestamp now = TimeMethods.timeSignature();
 
-            userRequest.decryptTicket(sessionKeyClientServer, "auth");
+            Timestamp ticketLifetime = TimeMethods.string2TimeStamp(serviceTicket.getLifetime());
 
-            Ticket userAuth = userRequest.searchTicket("auth");
+            if (now.compareTo(ticketLifetime) < 0){
+                SecretKey sessionKeyClientServer = KeyMethods.convertString2Key(serviceTicket.getKey());
+
+                userRequest.decryptTicket(sessionKeyClientServer, "auth");
+
+                Ticket userAuth = userRequest.searchTicket("auth");
 
 
-            if (serviceTicket.getFirstId().equals(userAuth.getFirstId())) {
-                if (
-                        serviceTicket.getSecondId().equals("Server")
-                                &&
+                if (serviceTicket.getFirstId().equals(userAuth.getFirstId())) {
+                    if (
+                            serviceTicket.getSecondId().equals("Server")
+                                    &&
 
-                                userAuth.getAddressIP().equals("localhost")
+                                    userAuth.getAddressIP().equals("localhost")
 //                                userAuth.getAddressIP().equals(socket.getInetAddress().getHostAddress())
-                )
-                    approveSession(socket, sessionKeyClientServer, serviceIPAddress);
+                    )
+                        approveSession(socket, sessionKeyClientServer, serviceIPAddress);
+                }
+                boolean flag;
+                do flag = Messenger.booleanResponder(socket, false); while (!flag);
+            } else {
+                System.out.println("El tiempo de vida del ticket ha expirado. Es necesario conseguir un nuevo ticket.");
+                System.exit(1);
             }
-            boolean flag;
-            do flag = Messenger.booleanResponder(socket, false); while (!flag);
 
         } catch (Exception e) {
             System.out.println("Ha ocurrido un error.");

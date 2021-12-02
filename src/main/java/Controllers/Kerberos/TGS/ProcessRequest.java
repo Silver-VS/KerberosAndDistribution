@@ -2,11 +2,13 @@ package Controllers.Kerberos.TGS;
 
 import Model.Messenger;
 import Model.Ticket;
+import Model.TimeMethods;
 import Model.UTicket;
 import Security.Model.KeyMethods;
 
 import javax.crypto.SecretKey;
 import java.net.Socket;
+import java.sql.Time;
 import java.sql.Timestamp;
 import java.time.Instant;
 
@@ -54,59 +56,61 @@ public class ProcessRequest {
 
             //  We compare the ID of the client.
             if (tgt.getFirstId().equals(userAuth.getFirstId())) {
-                //  We compare the IP address of the client.
-//                if (tgt.getAddressIP().equals("localhost")){ //Comment this line if not using localhost and uncomment the next one.
-                if (tgt.getAddressIP().equals(socket.getInetAddress().getHostAddress())) {
+                Timestamp lifetime = TimeMethods.string2TimeStamp(tgt.getLifetime());
+                Timestamp now = TimeMethods.timeSignature();
+                if (now.compareTo(lifetime) < 0){
+                    //  We compare the IP address of the client.
+                    if (tgt.getAddressIP().equals(socket.getInetAddress().getHostAddress())) {
 
-                    //  We generate a session key for the user to use with the Server.
-                    SecretKey sessionKeyClient_Server = KeyMethods.generateSecretKey();
-                    KeyMethods.saveSecret(sessionKeyClient_Server, path4KeySaving, "Client", "Server");
-                    //  We generate the time of expedition.
-                    Timestamp timestamp = Timestamp.from(Instant.now());
+                        //  We generate a session key for the user to use with the Server.
+                        SecretKey sessionKeyClient_Server = KeyMethods.generateSecretKey();
+                        KeyMethods.saveSecret(sessionKeyClient_Server, path4KeySaving, "Client", "Server");
+                        UTicket userResponse = new UTicket(); // id ticket: responseToClient
+                        userResponse.generateResponse4User( //
+                                "Server", //  ID v
+                                now.toString(), // TS 4
+                                lifetime.toString(), //  Tiempo de vida 2
+                                KeyMethods.convertAnyKey2String(sessionKeyClient_Server) //  K c-v
+                        );
 
-                    UTicket userResponse = new UTicket(); // id ticket: responseToClient
-                    userResponse.generateResponse4User( //
-                            "Server", //  ID v
-                            timestamp.toString(), // TS 4
-                            userService.getLifetime(), //  Tiempo de vida 2
-                            KeyMethods.convertAnyKey2String(sessionKeyClient_Server) //  K c-v
-                    );
+                        Timestamp secondLifetime = new Timestamp(now.getTime() + TimeMethods.getMillis(5,0));
 
-                    userResponse.generateTicket(
-                            "serviceTicket",
-                            tgt.getFirstId(), // ID c
-                            userService.getFirstId(), //  ID v
-                            timestamp.toString(),  // TS 4
-                            tgt.getAddressIP(), //  AD c
-                            userService.getLifetime(), //  Tiempo de vida 4
-                            KeyMethods.convertAnyKey2String(sessionKeyClient_Server) //  K c-v
-                    );
+                        userResponse.generateTicket(
+                                "serviceTicket",
+                                tgt.getFirstId(), // ID c
+                                userService.getFirstId(), //  ID v
+                                now.toString(),  // TS 4
+                                tgt.getAddressIP(), //  AD c
+                                secondLifetime.toString(), //  Tiempo de vida 4
+                                KeyMethods.convertAnyKey2String(sessionKeyClient_Server) //  K c-v
+                        );
 
-                    SecretKey secretTGS_Server =
-                            KeyMethods.recoverSecret(
-                                    path4KeyRetrieving, "TGS", "Server"
-                            );
+                        SecretKey secretTGS_Server =
+                                KeyMethods.recoverSecret(
+                                        path4KeyRetrieving, "TGS", "Server"
+                                );
 
-                    if (userResponse.encryptTicket(sessionKeyTGS_Client, "responseToClient"))
-                        System.out.println("El ticket responseToClient ha sido encriptado con la llave TGS-Client exitosamente.");
-                    else {
-                        System.out.println("Ha ocurrido un error al encriptar el ticket responseToClient");
-                        System.exit(-1);
+                        if (userResponse.encryptTicket(sessionKeyTGS_Client, "responseToClient"))
+                            System.out.println("El ticket responseToClient ha sido encriptado con la llave TGS-Client exitosamente.");
+                        else {
+                            System.out.println("Ha ocurrido un error al encriptar el ticket responseToClient");
+                            System.exit(-1);
+                        }
+                        if (userResponse.encryptTicket(secretTGS_Server, "serviceTicket"))
+                            System.out.println("El ticket serviceTicket ha sido encriptado con la llave TGS-Server exitosamente.");
+                        else {
+                            System.out.println("Ha ocurrido un error al encriptar el ticket serviceTicket.");
+                            System.exit(-1);
+                        }
+                        if (userResponse.encryptTicket(sessionKeyTGS_Client, "serviceTicket"))
+                            System.out.println("El ticket serviceTicket ha sido encriptado con la llave TGS-Client exitosamente.");
+                        else {
+                            System.out.println("Ha ocurrido un error al encriptar el ticket serviceTicket.");
+                            System.exit(-1);
+                        }
+
+                        return Messenger.ticketResponder(socket, userResponse);
                     }
-                    if (userResponse.encryptTicket(secretTGS_Server, "serviceTicket"))
-                        System.out.println("El ticket serviceTicket ha sido encriptado con la llave TGS-Server exitosamente.");
-                    else {
-                        System.out.println("Ha ocurrido un error al encriptar el ticket serviceTicket.");
-                        System.exit(-1);
-                    }
-                    if (userResponse.encryptTicket(sessionKeyTGS_Client, "serviceTicket"))
-                        System.out.println("El ticket serviceTicket ha sido encriptado con la llave TGS-Client exitosamente.");
-                    else {
-                        System.out.println("Ha ocurrido un error al encriptar el ticket serviceTicket.");
-                        System.exit(-1);
-                    }
-
-                    return Messenger.ticketResponder(socket, userResponse);
                 }
             }
 

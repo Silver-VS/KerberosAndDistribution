@@ -2,6 +2,7 @@ package Controllers.Kerberos.AS;
 
 import Model.Messenger;
 import Model.Ticket;
+import Model.TimeMethods;
 import Model.UTicket;
 import Security.Model.Encryption;
 import Security.Model.KeyMethods;
@@ -35,11 +36,12 @@ public class ProcessRequest {
             KeyMethods.saveSecret(sessionKeyClientTGS, path4KeySaving, "Client", "TGS");
 
             Timestamp timestamp = Timestamp.from(Instant.now());
+            Timestamp lifetime = new Timestamp(timestamp.getTime() + TimeMethods.getMillis(5,0));
 
             userResponse.generateResponse4User( // Name of ticket: responseToClient
                     "TGS - Victor", // ID TGS
                     timestamp.toString(), // TS 2
-                    ticket.getLifetime(), // Tiempo de vida 2
+                    lifetime.toString(), // Tiempo de vida 2
                     KeyMethods.convertAnyKey2String(sessionKeyClientTGS)); // K c-tgs
 
             userResponse.generateTicket(
@@ -48,7 +50,7 @@ public class ProcessRequest {
                     "TGS - Victor", // ID tgs
                     timestamp.toString(), // TS 2
                     socket.getInetAddress().getHostAddress(), //AD c
-                    ticket.getLifetime(), // Tiempo de vida 2
+                    lifetime.toString(), // Tiempo de vida 2
                     KeyMethods.convertAnyKey2String(sessionKeyClientTGS)); // K c-tgs
 
             SecretKey secretAS_Client = KeyMethods.recoverSecret(path4KeyRetrieving, "AS", "Client");

@@ -1,8 +1,8 @@
 package Controllers.Kerberos.Client;
 
 import Model.Ticket;
+import Model.TimeMethods;
 import Model.UTicket;
-import Security.Model.Encryption;
 import Security.Model.KeyMethods;
 
 import javax.crypto.SecretKey;
@@ -33,14 +33,14 @@ public class Controller {
         String addressIP_Server = "localhost";
         int connectionPort_Server = 1203;
 
-
         //  Variables to use later on.
         String receiverName;
         SecretKey ClientAS;
         SecretKey sessionKeyClientTGS;
         SecretKey sessionKeyClientServer;
         //  This lifetime can be changed accordingly to the interpretation we are giving it.
-        String requestedLifetime = "5000";
+        Timestamp requestedLifetime = TimeMethods.timeSignature();
+        requestedLifetime.setTime(requestedLifetime.getTime() + TimeMethods.getMillis(5, 0));
         String path4SecretKeyComms = projectPath + "\\src\\main\\java\\Security\\SecretVault\\Connection\\";
 
         try { //Intenta encontrar la llave del AS con el Cliente
@@ -50,7 +50,7 @@ public class Controller {
             System.out.print("\nSolicitud al AS");
             receiverName = "AS";
             //  We send the request ticket to the AS and receive the response from the AS
-            UTicket responseFromAS = RequestAccess.startAuth(whoAmI, receiverName, requestedLifetime,
+            UTicket responseFromAS = RequestAccess.startAuth(whoAmI, receiverName, requestedLifetime.toString(),
                     addressIP_AS, connectionPort_AS);
             //  We decrypt the tickets with our secret key.
             if (responseFromAS.decryptTicket(ClientAS, "responseToClient"))
@@ -81,11 +81,11 @@ public class Controller {
             System.out.println("Solicitud al TGS");
             UTicket responseFromTGS =
                     RequestAccess.followTGS(
-                            responseFromAS, "Server", sessionKeyClientTGS, requestedLifetime, whoAmI,
-                            Timestamp.from(Instant.now()).toString(),
+                            responseFromAS, "Server", sessionKeyClientTGS, responseAS.getLifetime(), whoAmI,
+                            TimeMethods.timeSignature().toString(),
                             addressIP_Self, addressIP_TGS, connectionPort_TGS
                     );
-            if (responseFromTGS == null){
+            if (responseFromTGS == null) {
                 System.out.println("Ha ocurrido un error al recibir la respuesta.");
                 System.exit(-1);
             }
@@ -121,7 +121,7 @@ public class Controller {
                             sessionKeyClientServer, addressIP_Self, addressIP_Server, connectionPort_Server
                     );
 
-            if(responseFromServer == null){
+            if (responseFromServer == null) {
                 System.out.println("Ha ocurrido un error al recibir la respuesta del servidor");
                 System.exit(-1);
             }
