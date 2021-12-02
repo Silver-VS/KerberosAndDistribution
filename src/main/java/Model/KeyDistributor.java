@@ -10,9 +10,10 @@ import java.security.PublicKey;
 
 public class KeyDistributor {
     public static void publicSenderSecretReceiver(String receiverHost, int connectionPort, String whosResponding,
-                                                  String whoAreYou, String path4KeysRetrieval, String path4KeySaving) throws Exception {
+                                                  String whoAreYou, String path4KeysRetrieval, String path4KeySaving)
+            throws Exception {
 
-        Socket socket = Messenger.initSocket(receiverHost, connectionPort);
+        Socket socket = Messenger.socketInitializer(receiverHost, connectionPort);
 
         PublicKey publicKey = KeyMethods.recoverPublic(path4KeysRetrieval, whoAreYou);
         PrivateKey privateKey = KeyMethods.recoverPrivate(path4KeysRetrieval, whoAreYou);
@@ -32,6 +33,6 @@ public class KeyDistributor {
         SecretKey secretKey = KeyMethods.generateSecretKey();
         KeyMethods.saveSecret(secretKey, path4KeySaving, whoAreYou, whoIsSending);
         System.out.println("La llave secreta ha sido generada exitosamente.");
-        return Messenger.respondWithSecret(socket, secretKey, publicKey);
+        return Messenger.secretResponder(socket, secretKey, publicKey);
     }
 }

@@ -12,7 +12,6 @@ import java.security.spec.X509EncodedKeySpec;
 import java.util.Base64;
 
 public class KeyMethods {
-//    public String directoryPath = "C:\\Escuela\\Quinto\\Android\\KeyDistribution\\src\\main\\java\\Security\\Keys\\";
 
     public static void keyCreator(String directoryPath, String whoAreYou) throws Exception {
 
@@ -46,8 +45,8 @@ public class KeyMethods {
         stream.close();
     }
 
-    public static void saveSecret(SecretKey key, String path, String whoAreYou,String withWho) throws Exception {
-        String fileAddress = path + "Symmetric-" + whoAreYou + "-" + withWho + ".key";
+    public static void saveSecret(SecretKey key, String path, String owner,String withWho) throws Exception {
+        String fileAddress = path + "Symmetric-" + owner + "-" + withWho + ".key";
         saveKey(key, fileAddress);
     }
 
@@ -56,6 +55,7 @@ public class KeyMethods {
         String fileAddress;
         if (isPublic) fileAddress = path + "public";
         else fileAddress = path + "private";
+
         fileAddress = fileAddress + whosKey + ".key";
 
         byte[] bytes = readFromSomething(fileAddress);
@@ -78,8 +78,8 @@ public class KeyMethods {
 
     public static PublicKey recoverPublic(String path, String whosKey) throws Exception{
         KeyFactory keyFactory = KeyFactory.getInstance("RSA");
-        KeySpec keySpecPrivate = recoverKey(true, path, whosKey);
-        return keyFactory.generatePublic(keySpecPrivate);
+        KeySpec keySpecPublic = recoverKey(true, path, whosKey);
+        return keyFactory.generatePublic(keySpecPublic);
     }
 
     public static String convertAnyKey2String(Key key) {
@@ -97,13 +97,6 @@ public class KeyMethods {
     public static SecretKey convertString2Key(String keyInString) {
         byte[] decodedKey = Base64.getDecoder().decode(keyInString);
         return new SecretKeySpec(decodedKey, 0, decodedKey.length, "DES");
-    }
-
-    public static PrivateKey convertString2Private(String keyInString) throws Exception{
-        byte[] decodedKey = Base64.getDecoder().decode(keyInString);
-        KeyFactory keyFactory = KeyFactory.getInstance("RSA");
-        KeySpec keySpec = new PKCS8EncodedKeySpec(decodedKey);
-        return  keyFactory.generatePrivate(keySpec);
     }
 
     public static byte[] readFromSomething(String address) throws Exception{

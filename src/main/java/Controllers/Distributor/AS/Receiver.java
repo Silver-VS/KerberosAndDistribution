@@ -9,9 +9,9 @@ public class Receiver {
 
         ServerSocket serverSocket = new ServerSocket(5521);
         String whoAmI = "AS";
+        String projectPath = "C:\\Escuela\\Quinto\\SeguridadWeb\\Kerberos";
 
         String senderName;
-        String projectPath = "C:\\Escuela\\Quinto\\SeguridadWeb\\Kerberos";
         String path4KeySaving = projectPath + "\\src\\main\\java\\Security\\SecretVault\\Connection\\";
 
         senderName = "Client";

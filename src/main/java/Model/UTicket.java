@@ -43,20 +43,19 @@ public class UTicket implements Serializable {
      * This ticket will be the one that the user sends to the AS at the time of asking for a service.
      * In other words, this should be the first ticket sent in the network.
      */
-    public void generateRequest(String userID, String serviceID, String userIP, String requestedLifetime) {
+    public void generateRequest(String userID, String serviceID, String requestedLifetime) {
         Ticket request = new Ticket();
         request.setIdTicket("request");
         request.setFirstId(userID);
         request.setSecondId(serviceID);
-        request.setAddressIP(userIP);
         request.setLifetime(requestedLifetime);
         addTicket(request);
     }
 
-    public void generateResponse4User(String id, String timeStamp, String lifetime, String key) {
+    public void generateResponse4User(String firstId, String timeStamp, String lifetime, String key) {
         Ticket response = new Ticket();
         response.setIdTicket("responseToClient");
-        response.setFirstId(id);
+        response.setFirstId(firstId);
         response.setTimeStamp(timeStamp);
         response.setLifetime(lifetime);
         response.setKey(key);
@@ -66,22 +65,22 @@ public class UTicket implements Serializable {
     public void generateTicket(String nameOfTicket, String firstID, String secondID, String timeStamp, String addressIP,
                                String lifetime, String key) {
         addTicket(
-                new Ticket(nameOfTicket, firstID, secondID, timeStamp, addressIP, lifetime, key)
+                new Ticket(nameOfTicket, firstID, secondID, addressIP, lifetime, timeStamp, key)
         );
     }
 
-    public void request4TGS(String serviceID, String requestedLifetime) {
+    public void request4TGS(String serviceID) {
         Ticket request = new Ticket();
         request.setIdTicket("request4TGS");
         request.setFirstId(serviceID);
-        request.setLifetime(requestedLifetime);
         addTicket(request);
     }
 
-    public void addAuthenticator(String id, String timeStamp) {
+    public void addAuthenticator(String firstID, String addressIP, String timeStamp) {
         Ticket auth = new Ticket();
         auth.setIdTicket("auth");
-        auth.setFirstId(id);
+        auth.setFirstId(firstID);
+        auth.setAddressIP(addressIP);
         auth.setTimeStamp(timeStamp);
         addTicket(auth);
     }
@@ -106,26 +105,21 @@ public class UTicket implements Serializable {
                 return false;
 
             boolean[] existingFields = getFilled(toEncrypt);
-            if (existingFields[0]) {
-                toEncrypt.setFirstId(Encryption.encryptSymmetric(key, toEncrypt.getFirstId()));
-            }
-            if (existingFields[1]) {
-                toEncrypt.setSecondId(Encryption.encryptSymmetric(key, toEncrypt.getSecondId()));
-            }
-            if (existingFields[2]) {
-                toEncrypt.setAddressIP(Encryption.encryptSymmetric(key, toEncrypt.getAddressIP()));
-            }
-            if (existingFields[3]) {
-                toEncrypt.setLifetime(Encryption.encryptSymmetric(key, toEncrypt.getLifetime()));
-            }
-            if (existingFields[4]) {
-                toEncrypt.setTimeStamp(Encryption.encryptSymmetric(key, toEncrypt.getTimeStamp()));
-            }
-            if (existingFields[5]) {
-                toEncrypt.setKey(Encryption.encryptSymmetric(key, toEncrypt.getKey()));
-            }
+            if (existingFields[0])
+                toEncrypt.setFirstId(Encryption.symmetricEncrypt(key, toEncrypt.getFirstId()));
+            if (existingFields[1])
+                toEncrypt.setSecondId(Encryption.symmetricEncrypt(key, toEncrypt.getSecondId()));
+            if (existingFields[2])
+                toEncrypt.setAddressIP(Encryption.symmetricEncrypt(key, toEncrypt.getAddressIP()));
+            if (existingFields[3])
+                toEncrypt.setLifetime(Encryption.symmetricEncrypt(key, toEncrypt.getLifetime()));
+            if (existingFields[4])
+                toEncrypt.setTimeStamp(Encryption.symmetricEncrypt(key, toEncrypt.getTimeStamp()));
+            if (existingFields[5])
+                toEncrypt.setKey(Encryption.symmetricEncrypt(key, toEncrypt.getKey()));
             return true;
         } catch (Exception e) {
+            e.printStackTrace();
             return false;
         }
     }
@@ -139,25 +133,26 @@ public class UTicket implements Serializable {
 
             boolean[] existingFields = getFilled(toDecrypt);
             if (existingFields[0]) {
-                toDecrypt.setFirstId(Encryption.decryptSymmetric(key, toDecrypt.getFirstId()));
+                toDecrypt.setFirstId(Encryption.symmetricDecrypt(key, toDecrypt.getFirstId()));
             }
             if (existingFields[1]) {
-                toDecrypt.setSecondId(Encryption.decryptSymmetric(key, toDecrypt.getSecondId()));
+                toDecrypt.setSecondId(Encryption.symmetricDecrypt(key, toDecrypt.getSecondId()));
             }
             if (existingFields[2]) {
-                toDecrypt.setAddressIP(Encryption.decryptSymmetric(key, toDecrypt.getAddressIP()));
+                toDecrypt.setAddressIP(Encryption.symmetricDecrypt(key, toDecrypt.getAddressIP()));
             }
             if (existingFields[3]) {
-                toDecrypt.setLifetime(Encryption.decryptSymmetric(key, toDecrypt.getLifetime()));
+                toDecrypt.setLifetime(Encryption.symmetricDecrypt(key, toDecrypt.getLifetime()));
             }
             if (existingFields[4]) {
-                toDecrypt.setTimeStamp(Encryption.decryptSymmetric(key, toDecrypt.getTimeStamp()));
+                toDecrypt.setTimeStamp(Encryption.symmetricDecrypt(key, toDecrypt.getTimeStamp()));
             }
             if (existingFields[5]) {
-                toDecrypt.setKey(Encryption.decryptSymmetric(key, toDecrypt.getKey()));
+                toDecrypt.setKey(Encryption.symmetricDecrypt(key, toDecrypt.getKey()));
             }
             return true;
         } catch (Exception e) {
+            e.printStackTrace();
             return false;
         }
     }
